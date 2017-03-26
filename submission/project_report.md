@@ -31,8 +31,6 @@ I create a meshgrid of corners in chessboard, assuming they are at same `z` dist
 
 ```
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objectpoints, imagepoints, _img_gray.shape[::-1],None,None)
-In [12]:
-
 ```
 
 I referred to [opencv calibration example](http://docs.opencv.org/3.1.0/dc/dbb/tutorial_py_calibration.html) and used `cv2.cornerSubPix` method to refine corner edges. [`(11,11)` tuple argument in `cornerSubPix` function is a corner search window, and not to be confused with number of corners]
@@ -101,7 +99,7 @@ I use perspective transformed and threshold applied image to detect lane pixels.
 
 Below image shows the result of my method:
 
-![win_line](../output_images/win_lines.png)
+![win_line](../output_images/win_line.png)
 
 #### 5. Radius of Curvature and Vehicle Position.
 
@@ -130,7 +128,7 @@ Here is a [YouTube link](https://www.youtube.com/watch?v=D2p78_DVhto) to my vide
 
 ---
 
-###Discussion
+### Discussion
 
 Steps to improve the algorithm:
 
