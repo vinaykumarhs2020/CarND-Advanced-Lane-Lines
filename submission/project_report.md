@@ -1,61 +1,74 @@
-##Writeup Template
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+# Advanced Lane Finding Project
 
----
+This project demonstrates using advanced computer vision techniques to detect the road lanes. Project-1 was a demonstration of using line detection algorithm - Hough transform - technique, whereas this project goes beyond addressing road lanes as straight line and fits a second order polinomial to represent them better.
 
-**Advanced Lane Finding Project**
+First section of the project estimates the camera calibration matrix using some chess board images provided. These parameters are used to rectify the images and remove camera distortions. In next steps, we use some advanced thresholding techniques to seperate the lane lines and fit a higher order polynomial to estimate the lane lines. Later, this algorithm is applied to lane lines (with some modifications!) to estimate lane lines in the video. 
 
-The goals / steps of this project are the following:
+### Camera Calibration
 
-* Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
-* Apply a distortion correction to raw images.
-* Use color transforms, gradients, etc., to create a thresholded binary image.
-* Apply a perspective transform to rectify binary image ("birds-eye view").
-* Detect lane pixels and fit to find the lane boundary.
-* Determine the curvature of the lane and vehicle position with respect to center.
-* Warp the detected lane boundaries back onto the original image.
-* Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+Lecture/Quiz questions showed how to estimate camera matrix/parameters form one image. I used the similar technique on multiple images. Using multiple images helps us estimate the camera parameters better. 
 
-[//]: # (Image References)
+I read all the camera image file names into `calibration_images` and loop through each image. For each image, I convert it to gray scale image and find chess board pattern in the image. 
+```
+nx=9
+ny=6
+for calibration_image in calibration_images:
+    img_color=cv2.imread(calibration_image)
+    img_gray=cv2.cvtColor(img_color,cv2.COLOR_BGR2GRAY)
+    ret,corners=cv2.findChessboardCorners(img_gray,(nx,ny),None)
+    if ret == True:
+        objectpoints.append(objp)
+        corners2=cv2.cornerSubPix(img_gray,corners,(11,11),(-1,-1),criteria)
+        imagepoints.append(corners2)        
+```
 
-[image1]: ./examples/undistort_output.png "Undistorted"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+I create a meshgrid of corners in chessboard, assuming they are at same `z` distance, called `objp`. These points, along with detected corners are used to find camera matrix: 
 
-## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
-###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+```
+ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objectpoints, imagepoints, _img_gray.shape[::-1],None,None)
+In [12]:
 
----
-###Writeup / README
+```
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
+I referred to [opencv calibration example](http://docs.opencv.org/3.1.0/dc/dbb/tutorial_py_calibration.html) and used `cv2.cornerSubPix` method to refine corner edges. [`(11,11)` tuple argument in `cornerSubPix` function is a corner search window, and not to be confused with number of corners]
 
-You're reading it!
-###Camera Calibration
 
-####1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+### Pipeline (single images)
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
+#### 1. Provide an example of a distortion-corrected image.
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+Below image shows an example of camera calibration and undistorting images. First image is a undistortion of one of calibraion images and second one shows a road image.
 
-![alt text][image1]
+![cali](../output_images/calib.png)
 
-###Pipeline (single images)
+![cali_road](../output_images/calib_road.png)
 
-####1. Provide an example of a distortion-corrected image.
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
-####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
-![alt text][image3]
+
+#### 2. Thresholding
+
+I use color and gradient thresholding to get the lane lines from the road images. `abs_sobel_thresh`, `dir_threshold` and `mag_threshold` functions are used to apply sobel filter of `kernel=(ksize,ksize)`. Outputs from these are combined into one image as shown below:
+
+![grad_thresh](../output_images/grad_thresh.png)
+
+Similarly, I use S channel from HLS color space to get the binary image as shown belo:
+
+![s_thresh](../output_images/s_thresh.png)
+
+Following parameters gave me good results:
+
+- ksize=11
+- gradx_thresh=(30, 110)
+- grady_thresh=(50, 250)
+- mag_thresh=(50, 150)
+- dir_thresh=(0.5, 1.2)
+- hls_thresh=(170,255)
+
+Finally, `combine_bin_images` combines gradient thresholded image and s channel thresholded image into a new binary image showing the lane pixels in white:
+
+![comb_thresh](../output_images/comb_thresh.png)
+
 
 ####3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
@@ -119,3 +132,12 @@ Here's a [link to my video result](./project_video.mp4)
 
 Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
 
+[//]: # (Image References)
+
+[image1]: ./examples/undistort_output.png "Undistorted"
+[image2]: ./test_images/test1.jpg "Road Transformed"
+[image3]: ./examples/binary_combo_example.jpg "Binary Example"
+[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
+[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
+[image6]: ./examples/example_output.jpg "Output"
+[video1]: ./project_video.mp4 "Video"
