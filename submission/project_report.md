@@ -4,6 +4,11 @@ This project demonstrates using advanced computer vision techniques to detect th
 
 First section of the project estimates the camera calibration matrix using some chess board images provided. These parameters are used to rectify the images and remove camera distortions. In next steps, we use some advanced thresholding techniques to seperate the lane lines and fit a higher order polynomial to estimate the lane lines. Later, this algorithm is applied to lane lines (with some modifications!) to estimate lane lines in the video. 
 
+__File Description__
+- _submission/project_report.md_: Project report
+- _submission/Advanced_Lane_Finding.html_: HTML version of `coding/Advanced_Lane_Finding.ipynb`, where I ran different trials on threshold values and testing algorithms on images.
+- _submission/Advanced_Lane_Submission.html_: HTML version of `coding/Advanced_Lane_Submission.ipynb` which shows the final results on video.
+
 ### Camera Calibration
 
 Lecture/Quiz questions showed how to estimate camera matrix/parameters form one image. I used the similar technique on multiple images. Using multiple images helps us estimate the camera parameters better. 
@@ -42,7 +47,7 @@ Below image shows an example of camera calibration and undistorting images. Firs
 
 ![cali](../output_images/calib.png)
 
-![cali_road](../output_images/calib_road.png)
+![calib_road](../output_images/calib_road.png)
 
 
 
@@ -70,74 +75,68 @@ Finally, `combine_bin_images` combines gradient thresholded image and s channel 
 ![comb_thresh](../output_images/comb_thresh.png)
 
 
-####3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+#### 3. Perspective Transform
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+I find the transformation in `Advanced_Lane_Finding.ipynb` and pickle it for future use in `Advanced_Lane_Submission.ipynb`. I manually find the image points by closely looking into the image with straight lane lines. To help my process, I crop the image into lane lines and draw a grid on it, as shown below.
 
-```
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+![grid](../output_images/grid.png)
 
-```
-This resulted in the following source and destination points:
+I got following point mapping:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| (580,460)  | (200,100) |
+| (290,660)  | (200,720) |
+| (710,460)  | (1100,100) |
+| (1030,660) | (1100,720) |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+This is the result of my transformation: 
 
-![alt text][image4]
+![persp](../output_images/persp.png)
 
-####4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+#### 4. Detecting Lane Pixels
 
-![alt text][image5]
+I use perspective transformed and threshold applied image to detect lane pixels. Initially, I run a histogram method to get a initial estimate of x-values and then use sliding window to get the subsequent pixels.
 
-####5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+Below image shows the result of my method:
 
-I did this in lines # through # in my code in `my_other_file.py`
+![win_line](../output_images/win_lines.png)
 
-####6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
+#### 5. Radius of Curvature and Vehicle Position.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+I followed the instructions in lecture notes to get the lane radius of curvature. I calculate it in `In [12]` in `coding/Advanced_Lane_Submission.ipynb` file.  Using the previously fitted line and assumption that camera is mounted at the center of the vehicle, I find the difference in distance to left and right lines from center of the image. This gives an estimate of vehicle offset.
 
-![alt text][image6]
+#### 6. Final Result.
+
+Once I have the estimate of lines, I use `reproject_lines` function to reproject the estimated lines on the original image using `Minv` perspective transformation. Below image shows the result:
+
+![final](../output_images/final.png)
+
 
 ---
 
-###Pipeline (video)
+### Pipeline (video)
 
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
+#### 1.Final Video
 
-Here's a [link to my video result](./project_video.mp4)
+I used the techniques mentioned above with a small modification to work on the video. I used a class called `Line` to store the important attributes of the left and right lanes. I also used a fixed length queue `deque(maxlen=10)` to store previously fitted x-values. This helped me in smooth out the lane projections and effectively find window to search lane pixels in consecutive frames.
+
+Here is a [YouTube link](https://www.youtube.com/watch?v=D2p78_DVhto) to my video:
+
+[![video](http://img.youtube.com/vi/D2p78_DVhto/0.jpg)](https://www.youtube.com/watch?v=D2p78_DVhto)
+
+
 
 ---
 
 ###Discussion
 
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+Steps to improve the algorithm:
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+1. Current approach depends solely on the threshold values. These are not adaptive and hard coded to this case. I should find a better way to generalize the thresholds or find an adaptive way to determine it.
+2. Fitting a polynomial line to all non zero pixel values might not be a good idea. I observed in the harder video set that, because of shadows, there was too much noise in the window region and messed up the line fitting.
+3. Higher order line equation can be fit for some steep turns.
 
-[//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+
