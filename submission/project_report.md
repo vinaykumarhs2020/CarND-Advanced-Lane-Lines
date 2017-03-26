@@ -97,7 +97,7 @@ This is the result of my transformation:
 
 #### 4. Detecting Lane Pixels
 
-I use perspective transformed and threshold applied image to detect lane pixels. Initially, I run a histogram method to get a initial estimate of x-values and then use sliding window to get the subsequent pixels.
+I use perspective transformed and threshold applied image to detect lane pixels. Initially, I run a histogram method to get a initial estimate of x-values and then use sliding window to get all the non zero pixels. Later, I fit a 2nd degree polynomial to the non-zero pixels and derive the lane equations.
 
 Below image shows the result of my method:
 
