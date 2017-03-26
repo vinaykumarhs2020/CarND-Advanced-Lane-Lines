@@ -41,9 +41,11 @@ I referred to [opencv calibration example](http://docs.opencv.org/3.1.0/dc/dbb/t
 
 #### 1. Provide an example of a distortion-corrected image.
 
-Below image shows an example of camera calibration and undistorting images. First image is a undistortion of one of calibraion images and second one shows a road image.
+Below image shows an example of camera calibration and undistorting images. First image is a undistortion of one of calibraion images:
 
 ![cali](../output_images/calib.png)
+
+Undistortion of road image:
 
 ![calib_road](../output_images/calib_road.png)
 
@@ -133,7 +135,7 @@ Here is a [YouTube link](https://www.youtube.com/watch?v=D2p78_DVhto) to my vide
 Steps to improve the algorithm:
 
 1. Current approach depends solely on the threshold values. These are not adaptive and hard coded to this case. I should find a better way to generalize the thresholds or find an adaptive way to determine it.
-2. Fitting a polynomial line to all non zero pixel values might not be a good idea. I observed in the harder video set that, because of shadows, there was too much noise in the window region and messed up the line fitting.
+2. Fitting a polynomial line to all non zero pixel values might not be a good idea. I observed in the `harder_challenge_video.mp4` video that, there was too much noise in the some regions.
 3. Higher order line equation can be fit for some steep turns.
 
 
